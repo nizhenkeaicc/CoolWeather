@@ -20,11 +20,13 @@ import androidx.fragment.app.Fragment;
 import com.coolweather.android.db.City;
 import com.coolweather.android.db.County;
 import com.coolweather.android.db.Province;
+import com.coolweather.android.gson.Weather;
 import com.coolweather.android.util.HttpUtil;
 import com.coolweather.android.util.Utility;
 
 import org.jetbrains.annotations.NotNull;
 import org.litepal.LitePal;
+import org.litepal.crud.DataSupport;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -83,7 +85,18 @@ public class ChooseAreaFragment extends Fragment {
                     queryCounties();
                 }else if (currentLevel == LEVEL_COUNTY){
                     String weatherId = countyList.get(position).getWeatherId();
-                    Intent intent = new Intent(getActivity(),WeatherActivity.class);
+                    if (getActivity() instanceof WeatherActivity){
+                        WeatherActivity activity = (WeatherActivity)getActivity();
+                        activity.drawerLayout.closeDrawers();
+                        activity.swipeRefreshLayout.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+                    }else if (getActivity() instanceof MainActivity){
+                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                        intent.putExtra("weather_id",weatherId);
+                        startActivity(intent);
+                        getActivity().finish();
+                    }
+                   Intent intent = new Intent(getActivity(),WeatherActivity.class);
                     intent.putExtra("weather_id",weatherId);
                     startActivity(intent);
                     getActivity().finish();
@@ -105,7 +118,8 @@ public class ChooseAreaFragment extends Fragment {
     private void queryProvinces() {
         titleText.setText("中国");    // 设置头布局标题
         backButton.setVisibility(View.GONE);    // 隐藏返回按钮
-        provinceList = LitePal.findAll(Province.class); // 调用 LitePal 查询接口来从数据库中读取省级数据
+        provinceList = DataSupport.findAll(Province.class);
+        //provinceList = LitePal.findAll(Province.class); // 调用 LitePal 查询接口来从数据库中读取省级数据
         if (provinceList.size() > 0) {
             dataList.clear();
             for (Province province : provinceList) {
@@ -123,8 +137,9 @@ public class ChooseAreaFragment extends Fragment {
     private void queryCities() {
         titleText.setText(selectedProvince.getProvinceName());
         backButton.setVisibility(View.VISIBLE);
-        cityList = LitePal.where("provinceId=?", String.valueOf(selectedProvince.getId()))
-                .find(City.class);
+        cityList = DataSupport.where("provinceId=?", String.valueOf(selectedProvince.getId())).find(City.class);
+        //cityList = LitePal.where("provinceId=?", String.valueOf(selectedProvince.getId()))
+         //       .find(City.class);
         if (cityList.size() > 0) {
             dataList.clear();
             for (City city : cityList) {
@@ -146,7 +161,7 @@ public class ChooseAreaFragment extends Fragment {
     private void queryCounties() {
         titleText.setText(selectedCity.getCityName());
         backButton.setVisibility(View.VISIBLE);
-        countyList = LitePal.where("cityid=?", String.valueOf(selectedCity.getId()))
+        countyList = DataSupport.where("cityid=?", String.valueOf(selectedCity.getId()))
                 .find(County.class);
         if (countyList.size() > 0) {
             dataList.clear();
